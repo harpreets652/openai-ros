@@ -2,6 +2,7 @@
 * Original source available in bitbucket
 * ROS documentation: [ros wiki](http://wiki.ros.org/openai_ros)
 * Example projects: [openai-ros-examples](https://bitbucket.org/theconstructcore/openai_examples_projects/src/master/)
+* Available public simulations: [openai-ros-simulations](https://bitbucket.org/theconstructcore/workspace/projects/PS)
 
 
 ## Install Dependencies
