@@ -1,6 +1,7 @@
 ## Code from [openai_ros](https://bitbucket.org/theconstructcore/openai_ros/src/kinetic-devel/)
 * Original source available in bitbucket
 * ROS documentation: [ros wiki](http://wiki.ros.org/openai_ros)
+* Example projects: [openai-ros-examples](https://bitbucket.org/theconstructcore/openai_examples_projects/src/master/)
 
 
 ## Install Dependencies
