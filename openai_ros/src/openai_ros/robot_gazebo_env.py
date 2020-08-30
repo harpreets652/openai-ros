@@ -22,6 +22,20 @@ class RobotGazeboEnv(gym.Env):
         self.episode_num = 0
         self.cumulated_episode_reward = 0
         self.reward_pub = rospy.Publisher('/openai/reward', RLExperimentInfo, queue_size=1)
+
+        # We Unpause the simulation and reset the controllers if needed
+        """
+        To check any topic we need to have the simulations running, we need to do two things:
+        1) Unpause the simulation: without that th stream of data doesnt flow. This is for simulations
+        that are pause for whatever the reason
+        2) If the simulation was running already for some reason, we need to reset the controlers.
+        This has to do with the fact that some plugins with tf, dont understand the reset of the simulation
+        and need to be reseted to work properly.
+        """
+        self.gazebo.unpauseSim()
+        if self.reset_controls:
+            self.controllers_object.reset_controllers()
+
         rospy.logdebug("END init RobotGazeboEnv")
 
     # Env methods
@@ -81,12 +95,12 @@ class RobotGazeboEnv(gym.Env):
         increases the episode number by one.
         :return:
         """
-        rospy.logdebug("PUBLISHING REWARD...")
+        rospy.logwarn("PUBLISHING REWARD...")
         self._publish_reward_topic(
                                     self.cumulated_episode_reward,
                                     self.episode_num
                                     )
-        rospy.logdebug("PUBLISHING REWARD...DONE="+str(self.cumulated_episode_reward)+",EP="+str(self.episode_num))
+        rospy.logwarn("PUBLISHING REWARD...DONE="+str(self.cumulated_episode_reward)+",EP="+str(self.episode_num))
 
         self.episode_num += 1
         self.cumulated_episode_reward = 0
@@ -126,7 +140,7 @@ class RobotGazeboEnv(gym.Env):
             self.gazebo.pauseSim()
 
         else:
-            rospy.logdebug("DONT RESET CONTROLLERS")
+            rospy.logwarn("DONT RESET CONTROLLERS")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
             self._set_init_pose()

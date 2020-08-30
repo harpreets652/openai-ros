@@ -31,8 +31,6 @@ class GazeboConnection():
         self.pauseSim()
 
     def pauseSim(self):
-        rospy.logdebug("PAUSING START")
-        rospy.wait_for_service('/gazebo/pause_physics')
         rospy.logdebug("PAUSING service found...")
         paused_done = False
         counter = 0
@@ -54,8 +52,6 @@ class GazeboConnection():
         rospy.logdebug("PAUSING FINISH")
 
     def unpauseSim(self):
-        rospy.logdebug("UNPAUSING START")
-        rospy.wait_for_service('/gazebo/unpause_physics')
         rospy.logdebug("UNPAUSING service found...")
         unpaused_done = False
         counter = 0
@@ -85,15 +81,15 @@ class GazeboConnection():
         systems.
         """
         if self.reset_world_or_sim == "SIMULATION":
-            rospy.logdebug("SIMULATION RESET")
+            rospy.logerr("SIMULATION RESET")
             self.resetSimulation()
         elif self.reset_world_or_sim == "WORLD":
-            rospy.logdebug("WORLD RESET")
+            rospy.logerr("WORLD RESET")
             self.resetWorld()
         elif self.reset_world_or_sim == "NO_RESET_SIM":
-            rospy.logdebug("NO RESET SIMULATION SELECTED")
+            rospy.logerr("NO RESET SIMULATION SELECTED")
         else:
-            rospy.logdebug("WRONG Reset Option:"+str(self.reset_world_or_sim))
+            rospy.logerr("WRONG Reset Option:"+str(self.reset_world_or_sim))
 
     def resetSimulation(self):
         rospy.wait_for_service('/gazebo/reset_simulation')

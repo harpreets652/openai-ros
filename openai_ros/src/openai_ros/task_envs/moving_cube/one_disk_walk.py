@@ -3,21 +3,34 @@ import numpy
 import math
 from gym import spaces
 from openai_ros.robot_envs import cube_single_disk_env
-from gym.envs.registration import register
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
-
-# The path is __init__.py of openai_ros, where we import the MovingCubeOneDiskWalkEnv directly
-timestep_limit_per_episode = 10000 # Can be any Value
-
-register(
-        id='MovingCubeOneDiskWalk-v0',
-        entry_point='openai_ros.task_envs.moving_cube.one_disk_walk:MovingCubeOneDiskWalkEnv',
-        timestep_limit=timestep_limit_per_episode,
-    )
+from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
+from openai_ros.openai_ros_common import ROSLauncher
+import os
 
 class MovingCubeOneDiskWalkEnv(cube_single_disk_env.CubeSingleDiskEnv):
     def __init__(self):
+        
+        # Launch the Task Simulated-Environment
+        # This is the path where the simulation files, the Task and the Robot gits will be downloaded if not there
+        ros_ws_abspath = rospy.get_param("/moving_cube/ros_ws_abspath", None)
+        assert ros_ws_abspath is not None, "You forgot to set ros_ws_abspath in your yaml file of your main RL script. Set ros_ws_abspath: \'YOUR/SIM_WS/PATH\'"
+        assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
+                                               " DOESNT exist, execute: mkdir -p " + ros_ws_abspath + \
+                                               "/src;cd " + ros_ws_abspath + ";catkin_make"
+        
+        ROSLauncher(rospackage_name = "moving_cube_description",
+                    launch_file_name = "start_world.launch",
+                    ros_ws_abspath=ros_ws_abspath)
+        
+        
+        
+        # Load Params from the desired Yaml file
+        LoadYamlFileParamsTest( rospackage_name = "openai_ros",
+                                rel_path_from_package_to_file = "src/openai_ros/task_envs/moving_cube/config",
+                                yaml_file_name = "one_disk_walk.yaml")
+        
         
         # Only variable needed to be set here
         number_actions = rospy.get_param('/moving_cube/n_actions')
@@ -76,11 +89,12 @@ class MovingCubeOneDiskWalkEnv(cube_single_disk_env.CubeSingleDiskEnv):
         self.y_linear_speed_reward_weight = rospy.get_param("/moving_cube/y_linear_speed_reward_weight")
         self.y_axis_angle_reward_weight = rospy.get_param("/moving_cube/y_axis_angle_reward_weight")
         self.end_episode_points = rospy.get_param("/moving_cube/end_episode_points")
-
+        
+        self.roll_reward_weight = rospy.get_param("/moving_cube/roll_reward_weight")
         self.cumulated_steps = 0.0
 
         # Here we will add any init functions prior to starting the MyRobotEnv
-        super(MovingCubeOneDiskWalkEnv, self).__init__()
+        super(MovingCubeOneDiskWalkEnv, self).__init__(ros_ws_abspath)
 
     def _set_init_pose(self):
         """Sets the Robot in its init pose
@@ -98,6 +112,7 @@ class MovingCubeOneDiskWalkEnv(cube_single_disk_env.CubeSingleDiskEnv):
         """
         self.total_distance_moved = 0.0
         self.current_y_distance = self.get_y_dir_distance_from_start_point(self.start_point)
+        self.pre_roll_angle = 0
         self.roll_turn_speed = rospy.get_param('/moving_cube/init_roll_vel')
         # For Info Purposes
         self.cumulated_reward = 0.0
@@ -201,12 +216,17 @@ class MovingCubeOneDiskWalkEnv(cube_single_disk_env.CubeSingleDiskEnv):
             # Negative Reward for yaw different from zero.
             yaw_angle = observations[5]
             rospy.logdebug("yaw_angle=" + str(yaw_angle))
+
             # Worst yaw is 90 and 270 degrees, best 0 and 180. We use sin function for giving reward.
             sin_yaw_angle = math.sin(yaw_angle)
             rospy.logdebug("sin_yaw_angle=" + str(sin_yaw_angle))
             reward_y_axis_angle = -1 * abs(sin_yaw_angle) * self.y_axis_angle_reward_weight
 
-
+            #Rolling reward
+            roll_angle = observations[2]
+            roll_reward = math.sin(abs(self.pre_roll_angle - roll_angle)) * self.roll_reward_weight
+            self.pre_roll_angle = roll_angle
+            
             # We are not intereseted in decimals of the reward, doesnt give any advatage.
             reward = round(reward_distance, 0) + round(reward_y_axis_speed, 0) + round(reward_y_axis_angle, 0)
             rospy.logdebug("reward_distance=" + str(reward_distance))

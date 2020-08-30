@@ -6,24 +6,35 @@ from gym.envs.registration import register
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Vector3
 from tf.transformations import euler_from_quaternion
-
-timestep_limit_per_episode = 10000 # Can be any Value
-
-register(
-        id='ShadowTcGetBall-v0',
-        entry_point='openai_ros.task_envs.shadow_tc.learn_to_pick_ball:ShadowTcGetBallEnv',
-        timestep_limit=timestep_limit_per_episode,
-    )
+from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
+from openai_ros.openai_ros_common import ROSLauncher
+import os
 
 class ShadowTcGetBallEnv(shadow_tc_env.ShadowTcEnv):
     def __init__(self):
         """
         Make ShadowTc learn how pick up a ball
         """
-        
+        # This is the path where the simulation files, the Task and the Robot gits will be downloaded if not there
+        ros_ws_abspath = rospy.get_param("/shadow_tc/ros_ws_abspath", None)
+        assert ros_ws_abspath is not None, "You forgot to set ros_ws_abspath in your yaml file of your main RL script. Set ros_ws_abspath: \'YOUR/SIM_WS/PATH\'"
+        assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
+                                               " DOESNT exist, execute: mkdir -p " + ros_ws_abspath + \
+                                               "/src;cd " + ros_ws_abspath + ";catkin_make"
+
+        ROSLauncher(rospackage_name="shadow_gazebo",
+                    launch_file_name="start_world.launch",
+                    ros_ws_abspath=ros_ws_abspath)
+
+        # Load Params from the desired Yaml file
+        LoadYamlFileParamsTest(rospackage_name="openai_ros",
+                               rel_path_from_package_to_file="src/openai_ros/task_envs/shadow_tc/config",
+                               yaml_file_name="learn_to_pick_ball.yaml")
+
+
         # We execute this one before because there are some functions that this
         # TaskEnv uses that use variables from the parent class, like the effort limit fetch.
-        super(ShadowTcGetBallEnv, self).__init__()
+        super(ShadowTcGetBallEnv, self).__init__(ros_ws_abspath)
         
         # Here we will add any init functions prior to starting the MyRobotEnv
         
