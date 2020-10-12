@@ -2,10 +2,10 @@
 
 import rospy
 from std_srvs.srv import Empty
-from gazebo_msgs.msg import ODEPhysics
-from gazebo_msgs.srv import SetPhysicsProperties, SetPhysicsPropertiesRequest
+from gazebo_msgs.msg import ODEPhysics, ModelState
+from gazebo_msgs.srv import SetPhysicsProperties, SetPhysicsPropertiesRequest, SetModelState
 from std_msgs.msg import Float64
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Pose, Point
 
 class GazeboConnection():
 
@@ -16,6 +16,7 @@ class GazeboConnection():
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
         self.reset_simulation_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         self.reset_world_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        self.set_model_state_proxy = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 
         # Setup the Gravity Controle system
         service_name = '/gazebo/set_physics_properties'
@@ -170,3 +171,19 @@ class GazeboConnection():
         self._gravity.z = z
 
         self.update_gravity_call()
+
+    def set_model_state(self, name, new_x, new_y, new_z):
+        rospy.logdebug("Updating model state for " + name)
+
+        model_state_update = ModelState()
+        model_state_update.model_name = name
+        model_state_update.pose.position.x = new_x
+        model_state_update.pose.position.y = new_y
+        model_state_update.pose.position.z = new_z
+
+        rospy.wait_for_service('/gazebo/set_model_state')
+        try:
+            self.set_model_state_proxy(model_state_update)
+        except rospy.ServiceException as e:
+            print ("/gazebo/set_model_state service call failed")
+        return
