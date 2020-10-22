@@ -10,6 +10,9 @@ project(openai_ros)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  geometry_msgs
+  gazebo_msgs
+  controller_manager_msgs
   message_generation
 )
 
