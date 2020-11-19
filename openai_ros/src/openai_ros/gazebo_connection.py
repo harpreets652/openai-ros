@@ -45,7 +45,7 @@ class GazeboConnection():
                     self.pause()
                     paused_done = True
                     rospy.logdebug("PAUSING service calling...DONE")
-                except rospy.ServiceException as e:
+                except rospy.ServiceException:
                     counter += 1
                     rospy.logerr("/gazebo/pause_physics service call failed")
             else:
@@ -68,7 +68,7 @@ class GazeboConnection():
                     self.unpause()
                     unpaused_done = True
                     rospy.logdebug("UNPAUSING service calling...DONE")
-                except rospy.ServiceException as e:
+                except rospy.ServiceException:
                     counter += 1
                     rospy.logerr("/gazebo/unpause_physics service call failed...Retrying "+str(counter))
             else:
@@ -101,14 +101,14 @@ class GazeboConnection():
         rospy.wait_for_service('/gazebo/reset_simulation')
         try:
             self.reset_simulation_proxy()
-        except rospy.ServiceException as e:
+        except rospy.ServiceException:
             print ("/gazebo/reset_simulation service call failed")
 
     def resetWorld(self):
         rospy.wait_for_service('/gazebo/reset_world')
         try:
             self.reset_world_proxy()
-        except rospy.ServiceException as e:
+        except rospy.ServiceException:
             print ("/gazebo/reset_world service call failed")
 
     def init_values(self):
@@ -186,12 +186,13 @@ class GazeboConnection():
         try:
             # second param is the relative frame
             model_state = self.get_model_state_proxy(name, "world")
-        except rospy.ServiceException as e:
+        except rospy.ServiceException:
             print("/gazebo/get_model_state service call failed")
 
         return model_state
 
-    def set_model_state(self, name, new_x, new_y, new_z):
+    def set_model_state(self, name, pos_x=0.0, pos_y=0.0, pos_z=0.0,
+                        ori_x=0.0, ori_y=0.0, ori_z=0.0, ori_w=1.0):
         """
         Set new position of a model using Gazebo
         """
@@ -200,13 +201,17 @@ class GazeboConnection():
 
         model_state_update = ModelState()
         model_state_update.model_name = name
-        model_state_update.pose.position.x = new_x
-        model_state_update.pose.position.y = new_y
-        model_state_update.pose.position.z = new_z
+        model_state_update.pose.position.x = pos_x
+        model_state_update.pose.position.y = pos_y
+        model_state_update.pose.position.z = pos_z
+        model_state_update.pose.orientation.x = ori_x
+        model_state_update.pose.orientation.y = ori_y
+        model_state_update.pose.orientation.z = ori_z
+        model_state_update.pose.orientation.w = ori_w
 
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
             self.set_model_state_proxy(model_state_update)
-        except rospy.ServiceException as e:
+        except rospy.ServiceException:
             print ("/gazebo/set_model_state service call failed")
         return
